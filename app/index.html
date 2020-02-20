@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <v-app id="v-app" :class="{danger: danger}">
+      <v-container fluid fill-height 
+                   style="max-width: 600px; position: relative;">
+
+        <!-- <div class="result-bg"></div> -->
+
+        <div class="pending-background-wrapper">
+          <v-icon v-show="pred" 
+                  ref="specialEffects"
+                  class="heart-bit" 
+                  style="animation: flip 1s infinite;">mdi-heart</v-icon>
+          <!-- <div class="pending-background">     
+          </div> -->
+        </div>
+
+        <v-row align="center" justify="center">
+          <v-col cols="12">
+            <h1 class="main-title">Real Or Not?</h1>
+            <h4 class="sub-title">Type a sentence and let the model check whether it is a danger or not.</h4>
+          </v-col>
+          <v-col cols="12">
+            <v-form :value="formState" action="">
+              <v-text-field v-model="text" :disable="loading"></v-text-field>
+              <!-- sentence box -->
+              <transition-group name="word-list" tag="div" 
+                                style="margin: 10px 0; display: flex; flex-wrap: wrap;">
+                <span v-for="(word, index) in displayedWords" 
+                      :key="index + 1" 
+                      class="word-chip">
+                      {{ word }}
+                </span>
+              </transition-group>
+              
+              <div class="words-actions">
+                <transition name="slide">
+                  <v-btn v-if="finishedWordsAnim" 
+                         small color="primary"
+                         @click="shuffle(displayedWords)"
+                         style="text-transform: none;">
+                      shuffle
+                  </v-btn>
+                </transition>
+              </div>
+              
+              <div style="position: relative; display: inline-block;">
+                <v-btn @click="submit" 
+                      :loading="loading"
+                      :disabled="loading || finishedWordsAnim == false">check</v-btn>
+                <span class="jumping-text" :class="{active: loading}">
+                  {{ loading? 'wait!' : 'done' }}
+                </span>
+              </div>
+            </v-form>
+          </v-col>
+          <v-col cols="12">
+            <transition name="slide" mode="out-in">
+              <div v-if="pred" class="prediction-box" key="1">
+                <v-icon class="heart-bit icon">mdi-heart</v-icon>
+                <span>Danger!</span>
+              </div>
+              <div v-else class="prediction-box" key="2">
+                <v-icon  class="all-good icon"></v-icon>
+                <span>All good</span>
+              </div>
+            </transition>
+          </v-col>
+        </v-row>
+        <!-- <v-row>
+
+        </v-row> -->
+      </v-container>
+
+    </v-app>
+  </div>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    .word-chip {
+      border-radius: 8px;
+      padding: 2px 18px;
+      margin: 4px 8px;
+      font-size: .9em;
+      background: red;
+      display: inline-block;
+    }
+    .word-list-enter-active, .word-list-leave-active {
+      transform: translate(0, 0);
+      opacity: 1;
+      transition: all .3s;
+    }
+    .word-list-enter, .word-list-leave-to {
+      opacity: .3;
+      transform: translate(-5px, -10px);
+    }
+    .words-actions {
+      display: flex;
+      justify-content: flex-start;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .word-list-move {
+      transition: transform 1s;
+    }
+    .slide-enter-active, .slide-leave-active {
+      transition: all .3s;
+    }
+    .slide-enter, .slide-leave-to {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+
+    body {
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    #v-app * {
+      /* z-index: 1; */
+    }
+
+    .prediction-box {
+      display: inline-flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.4em;
+    }
+    .prediction-box .icon {
+      font-size: 2em;
+      color: #f44336;
+    }
+    .jumping-text {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      z-index: -2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all .5s;
+    }
+    .jumping-text.active {
+      left: calc(100% + 10px);
+      z-index: 10;
+    }
+    .pending-background-wrapper {
+      display: flex;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+      align-items: center;
+      /* z-index: -2;
+      opacity: 0' */
+    }
+    .pending-background-wrapper.active {
+      /* z-index:  */
+    }
+    .pending-background {
+      z-index: -2;
+      /* background: red; */
+      border-radius: 50%;
+      transform: scale(0);
+      transition: all 3s;
+    }
+    .pending-background.active {
+      z-index: 2;
+      animation: ripple 1s infinite ease-out, shift-color 5s infinite ease-in-out;
+    }
+    .pending-background.done {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+
+    .ripple {
+      border-radius: 50%;
+      animation: ripple 1s infinite;
+    }
+
+    @keyframes shift-color {
+      from {
+        background: #123b14;
+      }
+      to {
+        background: #00e676;
+      }
+    }
+    @keyframes ripple {
+      0% {
+        transform: scale(0) translateX(-50px);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(.7) translateX(100px);
+      }
+    }
+
+    .heart-bit {
+      animation: heart-bit 1s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    @keyframes heart-bit {
+      0% {
+        transform: scale(0.95);
+      }
+      5% {
+        transform: scale(1.1);
+      }
+      39% {
+        transform: scale(0.85);
+      }
+      45% {
+        transform: scale(1);
+      }
+      60% {
+        transform: scale(0.95);
+      }
+      100% {
+        transform: scale(0.9);
+      }
+    }
+
+
+
+  </style>
+
+  <script>
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data() {
+        return {
+          text: '',
+          pred: null,
+          prob: null,
+          threshold: null,
+          words: [],
+          displayedWords: [],
+          finishedWordsAnim: null,
+          formState: false,
+          danger: false,
+          loading: false,
+        }
+      },
+      methods: {
+        shuffle(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              let ai = arr[i]
+              arr.splice(i, 1, arr[j])
+              arr.splice(j, 1, ai)
+              // [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          
+          return arr;
+        },
+        displayWords(words, delta) {
+          let k = 0, size = words.length;
+          let timeout = () => delta + 200 * Math.random() - 100;
+          this.displayedWords = [];
+          this.finishedWordsAnim = false;
+
+          let addWord = () => {
+            this.displayedWords.push(words[k++]);
+            if (k < words.length) setTimeout(addWord, timeout());
+            else setTimeout(() => this.finishedWordsAnim = true, 500);
+          };
+          if (size) setTimeout(addWord, 100);
+          else this.finishedWordsAnim = null;
+        },
+        setPendingBackground(mode) {
+          let bg = this.$refs['pending-background'];
+          let box = this.$el.querySelector('.pending-background-wrapper').getBoundingClientRect();
+          let size = Math.min(box.width, box.height);
+          
+          bg.style['width'] = size + 'px';
+          bg.style['height'] = size + 'px';
+          
+          let add, remove;
+          if (mode == 'on' || mode == true) {
+            [add, remove] = ['active', 'done']
+          }
+          else if (mode == 'off' || !mode) {
+            [add, remove] = ['done', 'active']
+          }
+
+          setTimeout(() => {
+                bg.classList.remove(remove);
+                bg.classList.add(add);
+              }, 100 * Math.random() + 100);
+        },
+        // randomCircles(el, n) {
+        //   el.innerHTML = '';
+        //   let box = el.getBoundingClientRect();
+        //   let x, y, width, height;
+        //   ({x, y, width, height} = box);
+        //   let size = Math.min(width, height);
+        //   // let x = box.x, y = box.y, width = box.width, height = box.height; 
+        //   let spans = [];
+
+        //   for (let i = 0; i < n; i++) {
+        //     spans.push(document.createElement('span'))
+        //   }
+        //   spans.forEach(span => {
+        //       span.classList.add('ripple');
+        //       span.style.left = width * Math.random() + 'px';
+        //       span.style.top = height * Math.random() + 'px';
+        //       span.style.width = size * Math.random() / 30 + 'px';
+        //       span.style.height = size * Math.random() / 30 + 'px';
+        //       span.style.background = 'red';
+        //       el.appendChild(span);
+        //     })
+        // },
+        dangerEffect(mode) {
+          let el = this.$refs.specialEffects;
+          let box = el.parent.getBoundingClientRect();
+          let size = Math.min(box.width, box.height);
+
+          el.style.width = size + 'px';
+          el.style.height = size + 'px'
+          // if (mode == 'on') {
+          //   this.$refs.specialEffects.innerHTML = ''
+          // }
+          // else if (mode == 'off') {
+          //   let box = this.$refs.specialEffects
+          //   let feed = document.createElement('span');
+          //   feed.innerHTML = `
+          //           <v-icon class="heart-bit" 
+          //                   style="animation: flip 1s infinite;">
+          //                 mdi-heart
+          //           </v-icon>`;
+          //   let size = Math.min(box.width, box.height) / 4; 
+          //   feed.style.width = feed.style.height = size + 'px';
+          //   // this.$refs.specialEffects.innerHTML = feed;
+          //   this.$refs.specialEffects.appendChild(feed);
+          //   console.log(this.$refs.specialEffects)
+            // this.$refs.specialEffects.innerHTML = `
+            //         <v-icon class="heart-bit" 
+            //                 style="animation: flip 1s infinite;">
+            //               mdi-heart
+            //         </v-icon>`;
+          
+        },
+        submit() {
+          this.loading = true;
+          let words = this.text.split(/\s+/).filter(item => !/^\s*$/.test(item));
+          this.displayWords(words, 1000);
+
+          // this.setPendingBackground('on')
+
+          let minWait = 200 * Math.random() + 100, start = new Date();
+          
+          fetch(`/predict?text=${encodeURIComponent(this.text)}`)
+          .then(res => res.json())
+          .then(async ({prob, pred, threshold}) => {
+              await new Promise(res => setTimeout(res, new Date() - start));
+              this.prob = prob;
+              this.pred = pred;
+              this.threshold = threshold;
+              this.loading = false;
+
+              // this.$refs.specialEffects.innerHTML = '';
+              // this.dangerEffect('off');
+              if (pred) {
+                // this.dangerEffect('off');
+                // this.$refs.specialEffects.innerHTML = '';
+                // this.dangerEffect('on');
+              }
+              // this.randomCircles(this.$refs['specialEffects'], 5);
+            })
+        }
+      }
+    })
+  </script>
+</body>
+</html>
