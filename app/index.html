@@ -9,13 +9,23 @@
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
-  <div id="app">
+  <div id="app" v-cloak>
+    <div style="position: absolute; top: 0; left: 0; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+      <img v-show="showBoom" class="boom-img" :class="{active: showBoom}" src="/boom.png" alt="...">
+    </div>
+
     <v-app id="v-app" :class="{danger: danger}">
       <v-container fluid fill-height 
-                   style="max-width: 600px; position: relative;">
+                   style="max-width: 600px; position: relative; color: white;">
 
         <!-- <div class="result-bg"></div> -->
 
@@ -30,12 +40,54 @@
 
         <v-row align="center" justify="center">
           <v-col cols="12">
-            <h1 class="main-title">Real Or Not?</h1>
-            <h4 class="sub-title">Type a sentence and let the model check whether it is a danger or not.</h4>
+            <!-- <transition></transition> -->
+            <h1 class="main-title fade-in">
+              <v-icon color="white" large style="margin-right: 10px;">mdi-twitter</v-icon>Real Or Not?
+            </h1>
+            <h4 class="sub-title slide-right">Type a sentence and let the model check whether it is a danger or not.</h4>
           </v-col>
           <v-col cols="12">
             <v-form :value="formState" action="">
-              <v-text-field v-model="text" :disable="loading"></v-text-field>
+              <v-card class="mx-auto" 
+                      style="color: #006064; border-radius: 18px;"
+                      color="blue lighten-5" 
+                      width="100%">
+                <v-card-title>
+                  <!-- <v-icon large left>
+                    mdi-twitter
+                  </v-icon> -->
+                  <span class="font-weight-light" style="font-size: .6em;">
+                    @RealDonaldTrump
+                  </span>
+                </v-card-title>
+              
+                <v-card-text class="headline font-weight-bold">
+                   <v-text-field v-model="text" :disable="loading"></v-text-field>
+                </v-card-text>
+              
+                <v-card-actions>
+                  <v-list-item class="grow">
+                    <v-list-item-avatar class="fade-in" color="grey darken-3">
+                      <v-img class="elevation-6"
+                        src="https://avataaars.io/?avatarStyle=Transparent&topType=ShortHairShortCurly&accessoriesType=Prescription02&hairColor=Black&facialHairType=Blank&clotheType=Hoodie&clotheColor=White&eyeType=Default&eyebrowType=DefaultNatural&mouthType=Default&skinColor=Light">
+                      </v-img>
+                    </v-list-item-avatar>
+              
+                    <v-list-item-content class="fade-in">
+                      <v-list-item-title>Israel Israeli</v-list-item-title>
+                    </v-list-item-content>
+              
+                    <v-row align="center" justify="end">
+                      <v-icon class="mr-1 fade-in">mdi-heart</v-icon>
+                      <span class="subheading mr-2 fade-in">{{ likes || 256 }}</span>
+                      <span class="mr-1">·</span>
+                      <v-icon class="mr-1 fade-in">mdi-share-variant</v-icon>
+                      <span class="subheading fade-in">{{ shares || 45 }}</span>
+                    </v-row>
+                  </v-list-item>
+                </v-card-actions>
+              </v-card>
+
               <!-- sentence box -->
               <transition-group name="word-list" tag="div" 
                                 style="margin: 10px 0; display: flex; flex-wrap: wrap;">
@@ -59,18 +111,23 @@
               
               <div style="position: relative; display: inline-block;">
                 <v-btn @click="submit" 
+                       class="rotate"
                       :loading="loading"
                       :disabled="loading || finishedWordsAnim == false">check</v-btn>
                 <span class="jumping-text" :class="{active: loading}">
                   {{ loading? 'wait!' : 'done' }}
                 </span>
+                <!-- <img v-show="pred" height="100%" style="position: absolute;" class="heart-bit icon" src="/boom.png" alt="..."> -->
+
+                
               </div>
             </v-form>
           </v-col>
           <v-col cols="12">
             <transition name="slide" mode="out-in">
               <div v-if="pred" class="prediction-box" key="1">
-                <v-icon class="heart-bit icon">mdi-heart</v-icon>
+                <!-- <img width="10px" class="heart-bit icon" src="/boom.png" alt="..."> -->
+                <!-- <v-icon class="heart-bit icon">mdi-heart</v-icon> -->
                 <span>Danger!</span>
               </div>
               <div v-else class="prediction-box" key="2">
@@ -79,10 +136,16 @@
               </div>
             </transition>
           </v-col>
+          <v-col cols="12" class="fade-in">
+            <v-progress-linear
+              height="10"
+              :indeterminate="loading || finishedWordsAnim == false"
+              :value="prob_ || 0"
+              color="blue darken-2"
+              rounded
+            ></v-progress-linear>
+          </v-col>
         </v-row>
-        <!-- <v-row>
-
-        </v-row> -->
       </v-container>
 
     </v-app>
@@ -97,8 +160,14 @@
       padding: 2px 18px;
       margin: 4px 8px;
       font-size: .9em;
-      background: red;
+      background: #1976D2;
+      color: white;
+      /* background: red; */
       display: inline-block;
+      transition: all .5s ease-out;
+    }
+    .word-chip.danger {
+      background: #E53935;
     }
     .word-list-enter-active, .word-list-leave-active {
       transform: translate(0, 0);
@@ -126,16 +195,61 @@
       transform: translateX(-10px);
     }
 
+    .slide-right {
+      animation: slide-right .8s ease;
+    }  
+    .fade-in {
+      animation: fade-in 1s ease-in-out;
+    }
+    .rotate {
+      animation: rotate  .4s ease-in;
+    }
+
+    @keyframes fade-in {
+      from {opacity: 0;}
+    }
+    @keyframes slide-right {
+      from {transform: translate(-20px);}
+      to {transform: translate(0);}
+    }
+    @keyframes rotate {
+      from {transform: rotate(0);}
+      to {transform: rotate(1080deg);}
+    }
+
     body {
       padding: 0;
       margin: 0;
       height: 100vh;
       width: 100vw;
-      overflow: hidden;
+      background: #00acee;
+      /* overflow: hidden; */
+    }
+    #v-app {
+      background: #00acee;
+      width: 100%;
+      height: 100%;
     }
 
-    #v-app * {
-      /* z-index: 1; */
+    .boom-img {
+      transform: scale(0);
+      opacity: 1;
+      transition: all .4s ease-out;
+      position: fixed;
+      max-width: 50vw;
+      margin: auto;
+      z-index: 10;
+    }
+    .boom-img.active {
+      animation: boom 1s ease-out infinite;
+      /* opacity: 0;
+      transform: scale(1); */
+    }
+    @keyframes boom {
+      to {
+        transform: scale(1);
+        opacity: 0;
+      }
     }
 
     .prediction-box {
@@ -176,9 +290,7 @@
       /* z-index: -2;
       opacity: 0' */
     }
-    .pending-background-wrapper.active {
-      /* z-index:  */
-    }
+
     .pending-background {
       z-index: -2;
       /* background: red; */
@@ -255,13 +367,33 @@
           text: '',
           pred: null,
           prob: null,
+          prob_: null,
           threshold: null,
           words: [],
           displayedWords: [],
+          likes: '',
+          shares: '',
           finishedWordsAnim: null,
           formState: false,
           danger: false,
           loading: false,
+          showBoom: null,
+        }
+      },
+      mounted() {
+        this.likes = Math.floor(200 * Math.random() + 10);
+        this.shares = Math.floor(50 * Math.random() + 2);
+        setTimeout(() => this.prob_ = 100, 500);
+      },
+      watch: {
+        finishedWordsAnim(prevval, newval) {
+          // console.log(prevval, newval)
+          // console.log(this.pred)
+          if (this.pred && prevval != newval) {
+            document.querySelectorAll('.word-chip').forEach(chip => chip.classList.add('danger'))
+            // this.showBoom = true;
+            // setTimeout(() => this.showBoom = false, 5000);
+          }
         }
       },
       methods: {
@@ -381,14 +513,12 @@
               this.threshold = threshold;
               this.loading = false;
 
-              // this.$refs.specialEffects.innerHTML = '';
-              // this.dangerEffect('off');
               if (pred) {
-                // this.dangerEffect('off');
-                // this.$refs.specialEffects.innerHTML = '';
-                // this.dangerEffect('on');
+                setTimeout(() => this.showBoom = true, 300);
+                setTimeout(() => this.showBoom = false, 5000);
               }
-              // this.randomCircles(this.$refs['specialEffects'], 5);
+
+              setTimeout(() => this.prob_ = prob * 100, 300);
             })
         }
       }
